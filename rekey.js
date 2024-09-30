@@ -58,6 +58,14 @@ const sendAlgos = async (sender, receiver, amount) => {
   let myAccountC = algosdk.generateAccount();
   console.log("My account C address: %s", myAccountC.addr);
 
+  // Account D
+  let myAccountD = algosdk.generateAccount();
+  console.log("My account D address: %s", myAccountD.addr);
+
+  // Account E
+  let myAccountE = algosdk.generateAccount();
+  console.log("My account E address: %s", myAccountE.addr);
+
   // Creator
   const creator = algosdk.mnemonicToSecretKey(process.env.MNEMONIC_CREATOR);
 
@@ -65,14 +73,17 @@ const sendAlgos = async (sender, receiver, amount) => {
   await sendAlgos(creator, myAccountA, 1e6);
   await sendAlgos(creator, myAccountB, 1e6);
   await sendAlgos(creator, myAccountC, 1e6);
+  await sendAlgos(creator, myAccountD, 1e6);
+  await sendAlgos(creator, myAccountE, 1e6);
   
   // Create multsig account containing B and C
   let multisigParams = {
     version: 1,
-    threshold: 1,
+    threshold: 2,
     addrs: [
       myAccountB.addr,
       myAccountC.addr,
+      myAccountD.addr,
     ],
   };
 
@@ -107,8 +118,13 @@ const sendAlgos = async (sender, receiver, amount) => {
   // await submitToNetwork(wrongTxn);
 
   // Txn can be signed by B or C
-  let msSignedTxn = algosdk.signMultisigTransaction(payTxn, multisigParams, myAccountB.sk);
-  await submitToNetwork(msSignedTxn.blob);
+  // let msSignedTxn = algosdk.signMultisigTransaction(payTxn, multisigParams, myAccountB.sk);
+  // await submitToNetwork(msSignedTxn.blob);
+
+  // Txn must be signed by two of B,C,D
+  let partiallySignedTxn = algosdk.signMultisigTransaction(payTxn, multisigParams, myAccountD.sk);
+  let fullySignedTxn = algosdk.appendSignMultisigTransaction(partiallySignedTxn.blob, multisigParams, myAccountC.sk);
+  await submitToNetwork(fullySignedTxn.blob);
 
   // Check your work
   console.log("Account A balance: ", (await algodClient.accountInformation(myAccountA.addr).do()).amount);
